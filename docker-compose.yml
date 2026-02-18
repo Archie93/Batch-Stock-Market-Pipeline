@@ -1,0 +1,155 @@
+services:
+  data-init:
+    image: alpine:3.19
+    container_name: airflow_data_init
+    volumes:
+      - airflow_data:/data
+      - ./data:/seed-data:ro
+    command: >
+      sh -c "
+      if [ ! -f /data/1_min_SPY_2008-2021.csv ]; then
+        echo 'Seeding data volume';
+        cp /seed-data/1_min_SPY_2008-2021.csv /data/1_min_SPY_2008-2021.csv;
+      else
+        echo 'Data already present, skipping seed';
+      fi
+      "
+    restart: "no"
+  airflow-init:
+    image: apache/airflow:2.8.1
+    container_name: airflow-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      echo 'Waiting for Postgres...' &&
+      sleep 10 &&
+      until pg_isready -h postgres -U ${POSTGRES_USER}; do sleep 3; done &&
+      echo 'Initializing Airflow metadata DB...' &&
+      airflow db init &&
+      airflow db migrate &&
+      echo 'Ensuring admin user exists...' &&
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true
+      "
+    restart: "no"
+    networks:
+      - stock_net
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${AIRFLOW_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/01_create_stockdb.sql:/docker-entrypoint-initdb.d/01_create_stockdb.sql
+      - ./db/02_stock_schema.sql:/docker-entrypoint-initdb.d/02_stock_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d ${AIRFLOW_DB}"]
+      interval: 5s
+      retries: 5
+    # WAL + CHECKPOINT TUNING
+    command: >
+      postgres
+      -c max_wal_size=4GB
+      -c min_wal_size=1GB
+      -c checkpoint_timeout=15min
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=64MB
+      -c synchronous_commit=off
+    networks: [stock_net]
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    container_name: airflow-webserver
+    depends_on:
+      data-init:
+        condition: service_completed_successfully
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+      AIRFLOW_CONN_POSTGRES_DEFAULT: postgres://stockuser:stockpass@postgres:5432/${STOCK_DB}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW_VAR_CSV_PATH: /opt/airflow/data/1_min_SPY_2008-2021.csv
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - airflow_data:/opt/airflow/data
+      - spark_output:/opt/spark/output
+    ports:
+      - "8080:8080"
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      SECRET_FILE=/opt/airflow/logs/airflow_webserver_secret &&
+      if [ ! -f \"$$SECRET_FILE\" ]; then
+        echo 'Generating Airflow webserver secret key'&&
+        python -c \"import secrets; open('$$SECRET_FILE','w').write(secrets.token_hex(32))\";
+      fi &&
+      export AIRFLOW__WEBSERVER__SECRET_KEY=$(cat $$SECRET_FILE) &&
+      echo 'Starting Airflow webserver...' && 
+      exec airflow webserver "
+    networks:
+      - stock_net
+  airflow-scheduler:
+    image: apache/airflow:2.8.1
+    container_name: airflow-scheduler
+    depends_on:
+      data-init:
+        condition: service_completed_successfully
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+      AIRFLOW_CONN_POSTGRES_DEFAULT: postgres://stockuser:stockpass@postgres:5432/${STOCK_DB}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW_VAR_CSV_PATH: /opt/airflow/data/1_min_SPY_2008-2021.csv
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - airflow_data:/opt/airflow/data
+      - spark_output:/opt/spark/output
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      SECRET_FILE=/opt/airflow/logs/airflow_webserver_secret &&
+      until [ -f \"$$SECRET_FILE\" ]; do
+        echo 'Waiting for Airflow webserver secret key...';
+        sleep 2;
+      done &&
+      export AIRFLOW__WEBSERVER__SECRET_KEY=$(cat $$SECRET_FILE) &&
+      exec airflow scheduler
+      "
+    networks:
+      - stock_net
+
+volumes:
+  pgdata:
+    name : stock_data_ohcl_data
+  airflow_data:
+    name : stock_data_airflow_data
+  spark_output:
+    name: spark_output
+
+networks:
+  stock_net:
+    name : stock_data_pipeline 
