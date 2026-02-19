@@ -80,7 +80,7 @@ services:
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
-      AIRFLOW_CONN_POSTGRES_DEFAULT: postgres://stockuser:stockpass@postgres:5432/${STOCK_DB}
+      AIRFLOW_CONN_POSTGRES_DEFAULT: ${AIRFLOW_CONN_POSTGRES_DEFAULT}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       AIRFLOW_VAR_CSV_PATH: /opt/airflow/data/1_min_SPY_2008-2021.csv
@@ -119,7 +119,7 @@ services:
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
-      AIRFLOW_CONN_POSTGRES_DEFAULT: postgres://stockuser:stockpass@postgres:5432/${STOCK_DB}
+      AIRFLOW_CONN_POSTGRES_DEFAULT: ${AIRFLOW_CONN_POSTGRES_DEFAULT}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW_VAR_CSV_PATH: /opt/airflow/data/1_min_SPY_2008-2021.csv
     volumes:
