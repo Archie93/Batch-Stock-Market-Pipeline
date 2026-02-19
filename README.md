@@ -318,3 +318,7 @@ The pipeline supports idempotent execution:
 ---
 
 # 👨‍💻 Author
+**Nitin Janardhana**  
+Data Engineering | Data Science | Distributed Systems  
+
+🔗 LinkedIn: https://www.linkedin.com/in/nitin-janardhana-8a4b7b1b3
