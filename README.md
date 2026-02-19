@@ -135,8 +135,15 @@ SPARK_CONF=--conf spark.executor.memory=4g
 
 - Docker
 - Docker Compose
+- Git(for Cloning repository)
+- Git LFS(Required to download the dataset)
 - Minimum 8GB RAM recommended
 - Port 8080 available
+
+**All the installations can be verified using the following commands**
+- git --version
+- git lfs version
+- docker --version
 
 ---
 
