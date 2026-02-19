@@ -119,11 +119,7 @@ CSV_PATH=/data/1_min_SPY_2008-2021.csv
 
 # Spark Runtime Configuration
 
-SPARK_CONF=--conf spark.executor.memory=4g 
---conf spark.driver.memory=4g 
---conf spark.sql.shuffle.partitions=8 
---conf spark.memory.fraction=0.7 
---conf spark.sql.codegen.aggregate.map.twolevel.enabled=false
+SPARK_CONF=--conf spark.executor.memory=4g --conf spark.driver.memory=4g --conf spark.sql.shuffle.partitions=8 --conf spark.memory.fraction=0.7 --conf spark.sql.codegen.aggregate.map.twolevel.enabled=false
 
 ````
 
@@ -153,9 +149,20 @@ SPARK_CONF=--conf spark.executor.memory=4g
 
     docker compose down -v
 
-## Step 2 – Build & Start Infrastructure
+## Step 2 – Build the ingestion and spark images locally
 
-    docker compose up --build
+    docker build -t batch-stock-market-pipeline-ingestion ./ingestion
+   
+After successful build, we should get this response
+
+       => => naming to docker.io/library/batch-stock-market-pipeline-ingestion                                                  0.0s
+Next build the spark image with this command :
+
+    docker build -t batch-stock-market-pipeline-spark ./spark
+
+## Step 3 – Build & Start Infrastructure
+
+    docker compose up -d
 
 ### This initializes:
 
@@ -165,6 +172,15 @@ SPARK_CONF=--conf spark.executor.memory=4g
 * Airflow admin user
 * Airflow webserver & scheduler
 
+Wait for 🕜1:30 seconds to let initializations be completed
+When we see the following commands in airflow_webserver container, proceed to airflow login
+
+    [2026-02-19 14:41:06 +0000] [10] [INFO] Listening at: http://0.0.0.0:8080 (10)
+    [2026-02-19 14:41:06 +0000] [10] [INFO] Using worker: sync
+    [2026-02-19 14:41:06 +0000] [25] [INFO] Booting worker with pid: 25
+    [2026-02-19 14:41:06 +0000] [26] [INFO] Booting worker with pid: 26
+    [2026-02-19 14:41:06 +0000] [27] [INFO] Booting worker with pid: 27
+    [2026-02-19 14:41:06 +0000] [28] [INFO] Booting worker with pid: 28
 ---
 
 # 🌐 Access Airflow
@@ -211,24 +227,36 @@ A successful run should show:
 ```
 Verification status : SUCCESS
 ```
+Sample log screenshot : 
 
 ## Spark
 
 ```
 Spark job completed successfully
 ```
+Sample log screenshot : 
 
 ## Database Verification
 
 ```
 DB VERIFICATION COMPLETED SUCCESSFULLY
 ```
+Sample log screenshot : 
 
 ## Finalization
 
 ```
 PIPELINE COMPLETED SUCCESSFULLY
 ```
+Sample log screenshot :
+
+
+All the logs are available for individual containers under : 
+
+    Airflow_batch-stock-market-pipeline/
+    │
+    ├── airflow/                             
+    │ └── logs/     #individual container logs
 ---
 
 # 🗄 Database Tables
