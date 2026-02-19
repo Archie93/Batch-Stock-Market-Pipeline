@@ -106,8 +106,8 @@ POSTGRES_USER=Your_Postgres_User
 POSTGRES_PASSWORD=Your_Postgres_Password
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
-AIRFLOW_USER: Your_Airflow_User
-AIRFLOW_PASSWORD: Your_Airflow_Password
+AIRFLOW_USER=Your_Airflow_User
+AIRFLOW_PASSWORD=Your_Airflow_Password
 
 # Airflow Postgres Connection
 
