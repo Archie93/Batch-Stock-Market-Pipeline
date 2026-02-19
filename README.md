@@ -228,6 +228,7 @@ A successful run should show:
 Verification status : SUCCESS
 ```
 Sample log screenshot : 
+![Ingestion_log](https://github.com/user-attachments/assets/934f7d21-9ed6-4152-81ac-38b2632b4307)
 
 ## Spark
 
@@ -235,13 +236,15 @@ Sample log screenshot :
 Spark job completed successfully
 ```
 Sample log screenshot : 
+![Spark_log](https://github.com/user-attachments/assets/ce71cd1b-4da7-44a9-8027-bf40b2cb096f)
 
 ## Database Verification
 
 ```
 DB VERIFICATION COMPLETED SUCCESSFULLY
 ```
-Sample log screenshot : 
+Sample log screenshot :
+![Verification_log](https://github.com/user-attachments/assets/3893c795-c94d-4163-b353-0805ac82df41)
 
 ## Finalization
 
@@ -249,7 +252,7 @@ Sample log screenshot :
 PIPELINE COMPLETED SUCCESSFULLY
 ```
 Sample log screenshot :
-
+![Finalization_log](https://github.com/user-attachments/assets/4256a5fc-734d-47d3-bddf-b98d3c64bae4)
 
 All the logs are available for individual containers under : 
 
